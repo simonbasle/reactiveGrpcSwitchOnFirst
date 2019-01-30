@@ -1,8 +1,6 @@
 package demo.hello.reactor;
 
-import demo.proto.Frame;
-import demo.proto.Greeting;
-import demo.proto.ReactorSkipGreeterGrpc;
+import demo.proto.*;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import reactor.core.publisher.Flux;
@@ -25,7 +23,7 @@ public class ReactorGrpcServer extends ReactorSkipGreeterGrpc.SkipGreeterImplBas
                         assert frame != null;
                         if (frame.hasConfig()) {
                             int skip = frame.getConfig().getSkip();
-                            return all.skip(skip).filter(Frame::hasPayload).map(Frame::getPayload);
+                            return all.filter(Frame::hasPayload).skip(skip).map(Frame::getPayload);
                         }
                         else {
                             //no configuration frame

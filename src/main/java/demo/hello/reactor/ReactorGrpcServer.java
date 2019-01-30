@@ -16,7 +16,7 @@ public class ReactorGrpcServer extends ReactorSkipGreeterGrpc.SkipGreeterImplBas
     @Override
     public Flux<Greeting> skipGreet(Flux<Frame> request) {
         return request
-                .log("before switchOnFirst")
+                .doOnNext(frame -> System.out.println("input from client: " + frame.toString().replaceAll("\n", "\t")))
                 .switchOnFirst((firstSignal, all) -> {
                     if (firstSignal.isOnNext()) {
                         Frame frame = firstSignal.get();

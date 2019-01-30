@@ -8,13 +8,36 @@ import reactor.core.publisher.Mono;
 
 public class ReactorGrpcServer extends ReactorSkipGreeterGrpc.SkipGreeterImplBase {
     public static void main(String[] args) throws Exception {
+        demonstrateLocalSwitchOnFirst();
+
         // Start the server
         Server server = ServerBuilder.forPort(8888).addService(new ReactorGrpcServer()).build().start();
         server.awaitTermination();
+
+    }
+
+    private static void demonstrateLocalSwitchOnFirst() {
+        applySkipGreet(Flux.just(
+                Frame.newBuilder().setConfig(Config.newBuilder().setSkip(3).build()).build(),
+                Frame.newBuilder().setPayload(Payload.newBuilder().setName("Andy").build()).build(),
+                Frame.newBuilder().setPayload(Payload.newBuilder().setName("Brad").build()).build(),
+                Frame.newBuilder().setPayload(Payload.newBuilder().setName("Charles").build()).build(),
+                Frame.newBuilder().setPayload(Payload.newBuilder().setName("Diane").build()).build(),
+                Frame.newBuilder().setPayload(Payload.newBuilder().setName("Edith").build()).build())
+                .hide()
+        )
+                .map(Greeting::getMessage)
+                .doOnNext(message -> System.err.println("RECEIVED: " + message))
+                .blockLast();
+        System.out.println("local demonstration done");
     }
 
     @Override
     public Flux<Greeting> skipGreet(Flux<Frame> request) {
+        return applySkipGreet(request);
+    }
+
+    private static Flux<Greeting> applySkipGreet(Flux<Frame> request) {
         return request
                 .doOnNext(frame -> System.out.println("input from client: " + frame.toString().replaceAll("\n", "\t")))
                 .switchOnFirst((firstSignal, all) -> {

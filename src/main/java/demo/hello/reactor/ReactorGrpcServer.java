@@ -34,13 +34,14 @@ public class ReactorGrpcServer extends ReactorSkipGreeterGrpc.SkipGreeterImplBas
 
     @Override
     public Flux<Greeting> skipGreet(Flux<Frame> request) {
-        return applySkipGreet(request);
+        return applySkipGreet(request.log());
     }
 
     private static Flux<Greeting> applySkipGreet(Flux<Frame> request) {
         return request
                 .doOnNext(frame -> System.out.println("input from client: " + frame.toString().replaceAll("\n", "\t")))
                 .switchOnFirst((firstSignal, all) -> {
+                    System.out.println("switching on first signal " + firstSignal); //FIXME this never gets invoked
                     if (firstSignal.isOnNext()) {
                         Frame frame = firstSignal.get();
                         assert frame != null;
@@ -53,8 +54,8 @@ public class ReactorGrpcServer extends ReactorSkipGreeterGrpc.SkipGreeterImplBas
                             return Mono.error(new IllegalArgumentException("Missing Config frame at start"));
                         }
                     } else {
-                        //FIXME does this suppress an immediate error?
-                        return Flux.empty(); //the input completes or errors immediately, so no real payload
+                        //avoid returning Flux.empty, which would suppress an immediate error.
+                        return all.cast(Payload.class); //the "all" input Flux completes or errors immediately, so no real payload
                     }
                 })
                 .map(payload -> Greeting.newBuilder().setMessage("Greetings, " + payload.getName()).build());
